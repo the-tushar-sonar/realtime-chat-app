@@ -2,6 +2,9 @@ import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import { checkToxic } from "../services/toxicCheck.service.js";
 
+if (!text || !text.trim()) return;
+if (text.length > 1000) return;
+
 const chatSocket = (socket, io) => {
   // join a room
   socket.on("join", ({ username, room = "global" }) => {

@@ -2,12 +2,14 @@ import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 
 export const fetchMessages = async (req, res) => {
-  const { room = "global", limit = 50 } = req.query;
+  const { room = "global", limit } = req.query;
+  const safeLimit = Math.min(parseInt(limit) || 50, 100);
+
   try {
     // populate sender info
     const msgs = await Message.find({ room })
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
+      .limit(safeLimit)
       .populate("sender", "username displayName")
       .lean();
 

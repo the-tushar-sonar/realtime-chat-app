@@ -9,10 +9,21 @@ router.post("/login", async (req, res) => {
   if (!username) return res.status(400).json({ error: "username required" });
 
   try {
-    let user = await User.findOne({ username });
-    if (!user) user = await User.create({ username, displayName });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return socket.emit("error", {
+        message: "User not found. Please login first.",
+      });
+    }
 
-    res.json({ ok: true, user: { _id: user._id, username: user.username, displayName: user.displayName } });
+    res.json({
+      ok: true,
+      user: {
+        _id: user._id,
+        username: user.username,
+        displayName: user.displayName,
+      },
+    });
   } catch (err) {
     console.error("auth/login err:", err.message);
     res.status(500).json({ ok: false, error: "Server error" });
