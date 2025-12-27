@@ -11,20 +11,20 @@ services:
       - ./server/.env
     depends_on:
       - mongo
-      - ml
+      # - ml
     networks:
       - chat-network
 
-  ml:
-    build: ./ml-service
-    container_name: chat-ml-service
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./ml-service/.env
-    networks:
-      - chat-network
+  # ml:
+  #   build: ./ml-service
+  #   container_name: chat-ml-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - ./ml-service/.env
+  #   networks:
+  #     - chat-network
 
   mongo:
     image: mongo:6
@@ -47,6 +47,8 @@ services:
     ports:
       - "8081:8081"
     environment:
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: adminpass
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: rootpass
       ME_CONFIG_MONGODB_SERVER: mongo
