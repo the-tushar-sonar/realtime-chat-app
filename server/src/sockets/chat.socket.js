@@ -19,6 +19,15 @@ const chatSocket = (socket, io) => {
     });
   });
 
+  // Typing indicator
+  socket.on("typing", () => {
+    if (!socket.data.room || !socket.data.username) return;
+
+    socket.to(socket.data.room).emit("typing", {
+      username: socket.data.username,
+    });
+  });
+
   // Receive message from frontend
   socket.on("send-message", async ({ text, tempId }) => {
     try {
