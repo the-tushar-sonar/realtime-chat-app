@@ -6,10 +6,12 @@ app = FastAPI()
 
 model = joblib.load("model/toxic_model.pkl")
 
-class Message(BaseModel):
+class TextIn(BaseModel):
     text: str
 
 @app.post("/predict")
-def predict(msg: Message):
-    result = model.predict([msg.text])
-    return {"toxic": bool(result[0])}
+def predict(data: TextIn):
+    pred = model.predict([data.text])[0]
+    return {
+        "toxic": bool(pred)
+    }
