@@ -1,24 +1,27 @@
 import { useState } from "react";
 
-const MessageInput = ({ onSend }) => {
+export default function MessageInput({ socketRef, onSend }) {
   const [text, setText] = useState("");
 
-  const submit = () => {
+  const handleSend = () => {
+    const socket = socketRef?.current;
+    if (!socket) {
+      console.warn("[UI] socket not ready in MessageInput");
+      return;
+    }
     if (!text.trim()) return;
-    onSend(text);
+    const tempId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+    onSend({ tempId, text, status: "sending" });
+
+    console.log("[UI] emitting send-message", { text, tempId });
+    socket.emit("send-message", { text, tempId });
     setText("");
   };
 
   return (
-    <div>
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Type message..."
-      />
-      <button onClick={submit}>Send</button>
+    <div style={{ display: "flex", gap: "8px" }}>
+      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message..." />
+      <button onClick={handleSend}>Send</button>
     </div>
   );
-};
-
-export default MessageInput;
+}
