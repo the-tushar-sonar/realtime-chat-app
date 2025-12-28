@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   api:
     build: ./server
@@ -13,16 +11,18 @@ services:
       - ML_URL=http://ml-service:8000/predict
     depends_on:
       - mongo
-      # - ml
+      - ml-service
     networks:
       - chat-network
 
   ml-service:
     build: ./ml-service
     container_name: ml-service
+    restart: unless-stopped
     ports:
       - "8000:8000"
-
+    networks:
+      - chat-network
 
   mongo:
     image: mongo:6

@@ -3,17 +3,18 @@ import User from "../models/user.model.js";
 
 const router = express.Router();
 
-// Create or get user by username
 router.post("/login", async (req, res) => {
   const { username, displayName } = req.body;
-  if (!username) return res.status(400).json({ error: "username required" });
+
+  if (!username) {
+    return res.status(400).json({ ok: false, error: "username required" });
+  }
 
   try {
-    const user = await User.findOne({ username });
+    let user = await User.findOne({ username });
+
     if (!user) {
-      return socket.emit("error", {
-        message: "User not found. Please login first.",
-      });
+      user = await User.create({ username, displayName });
     }
 
     res.json({
