@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/user.model.js";
+import { signToken } from "../utils/jwt.js";
 
 const router = express.Router();
 
@@ -17,8 +18,14 @@ router.post("/login", async (req, res) => {
       user = await User.create({ username, displayName });
     }
 
+    const token = signToken({
+      userId: user._id,
+      username: user.username,
+    });
+
     res.json({
       ok: true,
+      token,
       user: {
         _id: user._id,
         username: user.username,

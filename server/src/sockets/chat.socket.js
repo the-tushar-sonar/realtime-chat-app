@@ -2,21 +2,34 @@ import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import { checkToxic } from "../services/toxicCheck.service.js";
 
-const chatSocket = (socket, io) => {
-  // Join a room
-  socket.on("join", ({ username, room = "global" }) => {
-    socket.join(room);
+const onlineUsers = new Map(); // socketId -> username
+
+const getPrivateRoom = (a, b) => `private:${[a, b].sort().join(":")}`;
+
+const chatSocket = (io, socket) => {
+  socket.on("join", ({ username, room }) => {
+    if (!username) username = "anonymous";
+
     socket.data.username = username;
-    socket.data.room = room;
+    socket.data.room = room || "global";
+    socket.join(socket.data.room);
 
-    console.log(`${username} joined ${room}`);
-    console.log("[SOCKET] join event from socket", socket.id, username, room);
+    onlineUsers.set(socket.id, username);
 
-    // Notify others
-    socket.to(socket.data.room).emit("system-message", {
-      text: `${socket.data.username} left`,
+    // notify room
+    io.to(room).emit("online-users", [...new Set(onlineUsers.values())]);
+
+    socket.to(room).emit("system-message", {
+      _id: `sys-${socket.id}-${Date.now()}`,
+      text: `${username} joined the room`,
+      system: true,
       createdAt: Date.now(),
     });
+  });
+
+  socket.on("join-private", ({ from, to }) => {
+    const room = getPrivateRoom(from, to);
+    socket.join(room);
   });
 
   // Typing indicator
@@ -29,12 +42,15 @@ const chatSocket = (socket, io) => {
   });
 
   // Receive message from frontend
-  socket.on("send-message", async ({ text, tempId }) => {
+  socket.on("send-message", async ({ text, tempId, to }) => {
     try {
       if (!text || !text.trim()) return;
 
       const username = socket.data.username || "anonymous";
-      const room = socket.data.room || "global";
+
+      const room = to
+        ? getPrivateRoom(username, to)
+        : socket.data.room || "global";
 
       // Find or create user
       let user = await User.findOne({ username });
@@ -58,16 +74,21 @@ const chatSocket = (socket, io) => {
         sender: user._id,
         text,
         room,
+        to,
+        isPrivate: !!to,
         isToxic,
       });
 
       // Emit to room: include tempId to replace pending
       io.to(room).emit("new-message", {
-        _id: msg._id, // MongoDB ID
+        _id: msg._id.toString(), // MongoDB ID
         tempId, // frontend tempId
         sender: { username },
         text: msg.text,
         isToxic: msg.isToxic,
+        isPrivate: !!to,
+        to,
+        status: "delivered",
         createdAt: msg.createdAt,
       });
     } catch (err) {
@@ -77,15 +98,19 @@ const chatSocket = (socket, io) => {
   });
 
   // Handle disconnect
-  socket.on("disconnect", (reason) => {
-    console.log("Socket disconnected:", socket.id, reason);
-    const username = socket.data.username;
-    const room = socket.data.room;
+  socket.on("disconnect", () => {
+    const username = onlineUsers.get(socket.id);
+    onlineUsers.delete(socket.id);
 
-    if (username && room) {
-      socket.to(room).emit("system-message", {
-        text: `${username} left the room.`,
-        createdAt: new Date(),
+    if (username && socket.data.room) {
+      io.to(socket.data.room).emit(
+        "online-users",
+        Array.from(onlineUsers.values())
+      );
+
+      socket.to(socket.data.room).emit("system-message", {
+        text: `${username} left the room`,
+        createdAt: Date.now(),
       });
     }
   });
