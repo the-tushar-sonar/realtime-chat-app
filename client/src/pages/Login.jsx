@@ -9,6 +9,8 @@ const Login = ({ onLogin }) => {
 
     const res = await api.post("/auth/login", { username });
     onLogin(res.data.user);
+
+    localStorage.setItem("token", res.data.token);
   };
 
   return (

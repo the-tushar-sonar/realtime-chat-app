@@ -1,27 +1,18 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-export const useSocket = () => {
+export function useSocket() {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    console.log("[UI] initializing socket...");
-    socketRef.current = io(import.meta.env.VITE_API_URL || "http://localhost:5000", {
-      autoConnect: true
+    const token = localStorage.getItem("token");
+
+    socketRef.current = io("http://localhost:5000", {
+      auth: { token },
     });
 
-    socketRef.current.on("connect", () => {
-      console.log("[UI] socket connected:", socketRef.current.id);
-    });
-    socketRef.current.on("connect_error", (err) => {
-      console.error("[UI] socket connect_error:", err);
-    });
-
-    return () => {
-      console.log("[UI] disconnecting socket...");
-      socketRef.current.disconnect();
-    };
+    return () => socketRef.current?.disconnect();
   }, []);
 
   return socketRef;
-};
+}
